@@ -1,11 +1,10 @@
 #include <errno.h>
-#include <libgen.h>
 #include <limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "libpath.h"
 
@@ -59,4 +58,67 @@ int path_mkdirs(const char *path, mode_t mode)
 
     memcpy(buffer, path, length + 1);
     return mkdirs_lowlevel(buffer, mode);
+}
+
+int path_findprog(const char *name, char *output)
+{
+    const char *path = getenv("PATH");
+
+    unsigned int name_length = strnlen(name, NAME_MAX);
+    unsigned int path_length;
+    unsigned int start = 0;
+    unsigned int end = 0;
+
+    for (unsigned int x = 0; name[x] != '\x00'; x++) {
+        if (name[x] == '/') {
+            strncpy(output, name, PATH_MAX);
+            output[PATH_MAX] = '\x00';
+            return 0;
+        }
+    }
+
+    if (path != NULL) {
+        if (path[0] == '\x00') {
+            path = NULL;
+        }
+    }
+
+    if (path == NULL) {
+        path = "/usr/bin:/bin";
+    }
+
+    while (1) {
+        if ((path[end] == ':') || (path[end] == '\x00')) {
+            path_length = end - start;
+
+            if ((path_length + name_length + 1) > PATH_MAX) {
+                path_length = PATH_MAX - (name_length + 1);
+            }
+
+            memcpy(output, path + start, path_length);
+            output[path_length] = '/';
+            memcpy(output + path_length + 1, name, name_length);
+            output[name_length + path_length + 1] = '\x00';
+            start = end + 1;
+
+            if (access(output, R_OK | X_OK) == 0) {
+                return 0;
+            }
+        }
+
+        if (path[end] == '\x00') {
+            break;
+        }
+        end++;
+    }
+
+    memcpy(output, "./", 2);
+    memcpy(output + 2, name, name_length);
+    output[2 + name_length] = '\x00';
+
+    if (access(output, R_OK | X_OK) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
