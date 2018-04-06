@@ -2,8 +2,8 @@
 
 #include <ctype.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "libconfig.h"
 
@@ -110,7 +110,12 @@ static int match_key(const char *line, unsigned int line_length,
         }
     }
 
+    if (length == (unsigned int)(-1)) {
+        return -1;
+    }
+
     *value = malloc(length + 1);
+
     if (*value == NULL) {
         perror("allocation failure");
         return -2;
@@ -158,6 +163,10 @@ int config_lookup(const char *filename, const char *section, const char *key,
 
         trimmed = line + find_start(line);
         len = trim_right(trimmed);
+
+        if (len == (unsigned int)(-1)) {
+            return -1;
+        }
 
         switch (trimmed[0]) {
             case '\x00':
