@@ -64,7 +64,7 @@ format: $(foreach x,$(wildcard *.h),format-$x)
 tidy-%: %
 	@echo Analyzing $* with clang-tidy/clang-check...
 	@clang-tidy \
-	    "-checks=*,-llvm-header-guard,-android-cloexec-open,-hicpp-no-assembler" \
+	    "-checks=*,-llvm-header-guard,-android-cloexec-open,-android-cloexec-fopen,-hicpp-no-assembler" \
 	    "-header-filter=.*" $* -- 2>/dev/null | \
 	    (grep -iP "(warning|error)[:]" -A2 --color || true)
 	@clang-check -analyze $* --
