@@ -42,7 +42,7 @@ lint-%.c: %.c
 $(foreach x,$(wildcard *.c),$(eval lint-$x:))
 $(foreach x,$(wildcard *.h),$(eval lint-$x:))
 lint: $(foreach x,$(wildcard *.c),lint-$x)
-lint: $(foreach x,$(wildcard *.h),lint-$x)
+lint: $(foreach x,$(filter-out config.h,$(wildcard *.h)),lint-$x)
 
 #------------------------------------------------------------------------------#
 
@@ -72,7 +72,7 @@ tidy-%: %
 $(foreach x,$(wildcard *.c),$(eval tidy-$x:))
 $(foreach x,$(wildcard *.h),$(eval tidy-$x:))
 tidy: $(foreach x,$(wildcard *.c),tidy-$x)
-tidy: $(foreach x,$(wildcard *.h),tidy-$x)
+tidy: $(foreach x,$(filter-out config.h,$(wildcard *.h)),tidy-$x)
 
 #------------------------------------------------------------------------------#
 
