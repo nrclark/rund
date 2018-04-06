@@ -75,6 +75,9 @@ $(foreach x,$(wildcard *.h),$(eval tidy-$x:))
 tidy: $(foreach x,$(wildcard *.c),tidy-$x)
 tidy: $(foreach x,$(filter-out config.h,$(wildcard *.h)),tidy-$x)
 
+clean::
+	rm -f *.plist
+
 #------------------------------------------------------------------------------#
 
 sanitize ?= 1
