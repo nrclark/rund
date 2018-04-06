@@ -33,10 +33,11 @@ LINT_CFLAGS := $(strip \
 )
 
 lint-%.h: %.h
+	@echo Checking $< against lots of compiler warnings...
 	@$(CC) -c $(LINT_CFLAGS) -Wno-unused-macros $< -o /dev/null
 
 lint-%.c: %.c
-	@echo Checking $* against lots of compiler warnings...
+	@echo Checking $< against lots of compiler warnings...
 	@$(CC) -c $(LINT_CFLAGS) $< -o /dev/null
 
 $(foreach x,$(wildcard *.c),$(eval lint-$x:))
