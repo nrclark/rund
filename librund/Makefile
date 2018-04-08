@@ -4,7 +4,7 @@ CC := gcc
 #------------------------------------------------------------------------------#
 
 lint_flags.mk:
-	$(CC) -Wall -Wextra -pedantic -Q --help=warning | \
+	$(CC) -Wall -Wextra -pedantic -ansi -Q --help=warning | \
 	grep -P "(disabled|[=] )" | grep -Po "[-]W[^ \t=]+" | \
 	sort | uniq > $@.temp.init
 	echo "int main(void) { return 0;}" > $@.temp.c
