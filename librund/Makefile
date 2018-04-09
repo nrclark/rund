@@ -6,7 +6,7 @@ all: librund.a
 #------------------------------------------------------------------------------#
 
 lint_flags.mk:
-	$(CC) -Wall -Wextra -pedantic -ansi -Q --help=warning | \
+	$(CC) -Wall -Wextra -pedantic -ansi -std=c11 -Q --help=warning | \
 	grep -P "(disabled|[=] )" | grep -Po "[-]W[^ \t=]+" | \
 	sort | uniq > $@.temp.init
 	echo "int main(void) { return 0;}" > $@.temp.c
@@ -30,7 +30,7 @@ LINT_BLACKLIST := \
     -Wunused-macros
 
 LINT_CFLAGS := $(strip \
-    -Wall -Wextra -pedantic \
+    -Wall -Wextra -pedantic -ansi -std=c11 \
     $(filter-out $(LINT_BLACKLIST),$(LINT_CFLAGS)) \
     -Wno-system-headers \
 )
