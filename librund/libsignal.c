@@ -113,9 +113,12 @@ static void pipefd_handler(int signum, siginfo_t *info, void *ptr)
     (void) info;
 
     if (write(pipe_set[signum][1], "\x00", 1) < 0) {
-        perror("Couldn't write to notification pipe");
+        if (errno != EAGAIN) {
+            perror("Couldn't write to notification pipe");
+        }
     }
 }
+
 /*----------------------------------------------------------------------------*/
 
 int signal_pipefd_connect(int signum)
