@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -67,18 +69,20 @@ static int fd_set_flags(int fd, int flags)
     return 0;
 }
 
-/* returns 0 if the fd is ready for reading. */
+/* returns -1 in an error, 0 if the fd is blocked, and 1 if the fd is
+ * ready for reading. */
 static int fd_check_ready(int fd)
 {
     fd_set read_fds;
     fd_set error_fds;
+    struct timeval timeout = {0};
 
     FD_ZERO(&read_fds);
     FD_ZERO(&error_fds);
     FD_SET(fd, &read_fds);
     FD_SET(fd, &error_fds);
 
-    int result = select(fd + 1, &read_fds, NULL, &error_fds, NULL);
+    int result = select(fd + 1, &read_fds, NULL, &error_fds, &timeout);
 
     if (result < 0) {
         perror("select call failed");
@@ -88,11 +92,17 @@ static int fd_check_ready(int fd)
     /* We might normally use FD_ISSET here, but this isn't necessary
      * because we're only listening for one item (the socket). */
 
-    if (result == 0) {
-        return 1;
-    }
+    return (result == 0) ? 0 : 1;
+}
 
-    return 0;
+static void pipe_set_init(void)
+{
+    initialized = true;
+
+    for (unsigned int x = 0; x < max_signum; x++) {
+        pipe_set[x][0] = -1;
+        pipe_set[x][1] = -1;
+    }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -108,17 +118,7 @@ static void pipefd_handler(int signum, siginfo_t *info, void *ptr)
 }
 /*----------------------------------------------------------------------------*/
 
-void signal_pipefd_init(void)
-{
-    initialized = true;
-
-    for (unsigned int x = 0; x < max_signum; x++) {
-        pipe_set[x][0] = -1;
-        pipe_set[x][1] = -1;
-    }
-}
-
-int signal_pipefd_listen(int signum)
+int signal_pipefd_connect(int signum)
 {
     int result;
 
@@ -128,7 +128,7 @@ int signal_pipefd_listen(int signum)
     }
 
     if (initialized == false) {
-        signal_pipefd_init();
+        pipe_set_init();
     }
 
     if (pipe_set[signum][0] != -1) {
@@ -164,10 +164,14 @@ int signal_pipefd_get(int signum)
         return -1;
     }
 
+    if (initialized == false) {
+        pipe_set_init();
+    }
+
     return pipe_set[signum][0];
 }
 
-int signal_pipefd_ack(int signum)
+int signal_pipefd_clear(int signum)
 {
     int result;
     char dummy_buffer;
@@ -177,23 +181,48 @@ int signal_pipefd_ack(int signum)
         return -1;
     }
 
+    if (initialized == false) {
+        pipe_set_init();
+    }
+
     result = fd_check_ready(pipe_set[signum][0]);
 
     if (result < 0) {
         return result;
     }
 
-    if (result == 0) {
+    if (result == 1) {
         result = read(pipe_set[signum][0], &dummy_buffer, 1);
 
         if (result < 0) {
             perror("read from pipe failed");
+            return result;
         }
 
-        return (result == 1);
+        if (result == 0) {
+            fprintf(stderr, "warning: read from pipefd was empty\n");
+            return -1;
+        }
+
+        return 0;
     }
 
-    return result;
+    fprintf(stderr, "warning: tried to clear empty signal\n");
+    return -1;
+}
+
+int signal_pipefd_check(int signum)
+{
+    if (signum > max_signum) {
+        fprintf(stderr, "Requested signal too big!\n");
+        return -1;
+    }
+
+    if (initialized == false) {
+        pipe_set_init();
+    }
+
+    return fd_check_ready(pipe_set[signum][0]);
 }
 
 int signal_pipefd_wait(int signum)
@@ -206,11 +235,52 @@ int signal_pipefd_wait(int signum)
         return -1;
     }
 
+    if (initialized == false) {
+        pipe_set_init();
+    }
+
     result = read(pipe_set[signum][0], &dummy_buffer, 1);
 
     if (result < 0) {
         perror("read from pipe failed");
+        return result;
     }
 
-    return (result == 1);
+    if (result == 0) {
+        fprintf(stderr, "warning: read from pipefd was empty\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int signal_pipefd_cleanup(void)
+{
+    int result;
+
+    if (initialized == false) {
+        return 0;
+    }
+
+    for (unsigned int signum = 0; signum < max_signum; signum++) {
+        if (pipe_set[signum][0] != -1) {
+            signal((int) signum, SIG_DFL);
+        }
+
+        for (unsigned int x = 0; x < 2; x++) {
+            if (pipe_set[signum][x] != -1) {
+                result = close(pipe_set[signum][x]);
+
+                if (result != 0) {
+                    perror("couldn't close pipefd");
+                    return result;
+                }
+
+                pipe_set[signum][x] = -1;
+            }
+        }
+    }
+
+    initialized = false;
+    return 0;
 }
