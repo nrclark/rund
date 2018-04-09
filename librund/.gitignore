@@ -2,3 +2,4 @@
 *.a
 a.out
 *.plist
+lint_flags.mk

@@ -45,6 +45,9 @@ $(foreach x,$(wildcard *.h),$(eval lint-$x:))
 lint: $(foreach x,$(wildcard *.c),lint-$x)
 lint: $(foreach x,$(filter-out config.h,$(wildcard *.h)),lint-$x)
 
+clean::
+	rm -f lint_flags.mk
+
 #------------------------------------------------------------------------------#
 
 format-%: % uncrustify.cfg
