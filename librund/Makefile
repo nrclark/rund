@@ -1,6 +1,8 @@
 .SUFFIXES:
 CC := gcc
 
+all: librund.a
+
 #------------------------------------------------------------------------------#
 
 lint_flags.mk:
@@ -8,10 +10,11 @@ lint_flags.mk:
 	grep -P "(disabled|[=] )" | grep -Po "[-]W[^ \t=]+" | \
 	sort | uniq > $@.temp.init
 	echo "int main(void) { return 0;}" > $@.temp.c
-	$(CC) $$(cat $@.temp.init) $@.temp.c 2>&1 | grep "error: " | \
-	grep -oP "[-]W[a-zA-Z0-9_-]+" | sort | uniq > $@.temp.blacklist
+	$(CC) $$(cat $@.temp.init) $@.temp.c -o /dev/null 2>&1 | \
+	grep "error: " | grep -oP "[-]W[a-zA-Z0-9_-]+" | \
+	sort | uniq > $@.temp.blacklist
 	cat $@.temp.init | grep -vFf $@.temp.blacklist > $@.temp.works
-	$(CC) $$(cat $@.temp.works) $@.temp.c 2>&1 | \
+	$(CC) $$(cat $@.temp.works) $@.temp.c -o /dev/null 2>&1 | \
 	    grep -P "is valid for [^ ]+ but not for C" | \
 	    grep -oP "[-]W[a-zA-Z0-9_-]+" > $@.temp.blacklist
 	cat $@.temp.works | grep -vFf $@.temp.blacklist > $@.temp.ok
@@ -24,7 +27,7 @@ lint_flags.mk:
 
 LINT_BLACKLIST := \
     -Wtraditional -Wformat-nonliteral -Wtraditional-conversion -Wpadded \
-	-Wunused-macros
+    -Wunused-macros
 
 LINT_CFLAGS := $(strip \
     -Wall -Wextra -pedantic \
@@ -147,12 +150,13 @@ ifneq ($(sanitize),)
 CFLAGS += $(SAN_CFLAGS)
 else
 CFLAGS += -O2
+CFLAGS += -ffunction-sections -fdata-sections -flto -Wl,-flto,--gc-sections
 endif
 
 CFLAGS := $(strip $(CFLAGS))
 
 %.o: %.c
-	$(CC) -c $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 clean::
 	rm -f *.o
@@ -164,7 +168,7 @@ LIBPROC_SRC += $(wildcard *.h)
 
 librund.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBRUND_SRC)))
 	rm -f $@
-	ar rcs $@ $^
+	gcc-ar rcs $@ $^
 
 lint-librund: $(foreach x,$(LIBRUND_SRC),lint-$x)
 format-librund: $(foreach x,$(LIBRUND_SRC),format-$x)
