@@ -50,23 +50,33 @@ static int register_handler(handler_t handler, int signum, bool block_others,
     return result;
 }
 
-static int fd_set_flags(int fd, int flags)
+static int fd_set_flags(int fd, int getcmd, int setcmd, int flags)
 {
     int result;
     errno = 0;
 
-    result = fcntl(fd, F_GETFL);
+    result = fcntl(fd, getcmd);
 
     if ((errno != 0) || (result < 0)) {
         perror("couldn't read fd flags");
         return -1;
     }
 
-    if (fcntl(fd, F_SETFL, result | flags)) {
+    if (fcntl(fd, setcmd, result | flags)) {
         perror("couldn't set fd flags");
         return -1;
     }
     return 0;
+}
+
+static int fd_set_flflags(int fd, int flags)
+{
+    return fd_set_flags(fd, F_GETFL, F_SETFL, flags);
+}
+
+static int fd_set_fdflags(int fd, int flags)
+{
+    return fd_set_flags(fd, F_GETFD, F_SETFD, flags);
 }
 
 /* returns -1 in an error, 0 if the fd is blocked, and 1 if the fd is
@@ -143,11 +153,15 @@ int signal_pipefd_connect(int signum)
         return -1;
     }
 
-    if (fd_set_flags(pipe_set[signum][0], FD_CLOEXEC)) {
+    if (fd_set_fdflags(pipe_set[signum][0], FD_CLOEXEC)) {
         return -1;
     }
 
-    if (fd_set_flags(pipe_set[signum][1], FD_CLOEXEC | O_NONBLOCK)) {
+    if (fd_set_fdflags(pipe_set[signum][1], FD_CLOEXEC)) {
+        return -1;
+    }
+
+    if (fd_set_flflags(pipe_set[signum][1], O_NONBLOCK)) {
         return -1;
     }
 
