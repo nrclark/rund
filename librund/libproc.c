@@ -13,8 +13,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "libproc.h"
 #include "libpath.h"
+#include "libproc.h"
 
 extern char **environ;
 
