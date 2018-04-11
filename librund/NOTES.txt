@@ -1,0 +1,8 @@
+NOTES:
+
+ - Think about listen() socket size limits. How can I make sure that
+   the rund control client doesn't act up if the listen() queue is full?
+
+ - Remove nanosleep from the final product.
+
+ - Remember to comb through sources and verify EINTR safety.
