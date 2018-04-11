@@ -19,28 +19,23 @@ static bool initialized = false;
 
 /*----------------------------------------------------------------------------*/
 
-typedef void (*handler_t)(int signum, siginfo_t *info, void *ptr);
+typedef void (*handler_t)(int signum);
 
-static int register_handler(handler_t handler, int signum, bool block_others,
-                            bool send_siginfo)
+static int register_handler(handler_t handler, int signum, bool block_others)
 {
     int result;
 
     struct sigaction action = {
-        .sa_sigaction = handler,
+        .sa_handler = handler,
         .sa_flags = SA_RESTART
     };
-
-    if (send_siginfo) {
-        action.sa_flags |= SA_SIGINFO;
-    }
 
     if (block_others) {
         sigfillset(&action.sa_mask);
     } else {
         sigemptyset(&action.sa_mask);
     }
-
+    action.sa_flags = SA_RESTART;
     result = sigaction(signum, &action, NULL);
 
     if (result != 0) {
@@ -117,11 +112,8 @@ static void pipe_set_init(void)
 
 /*----------------------------------------------------------------------------*/
 
-static void pipefd_handler(int signum, siginfo_t *info, void *ptr)
+static void pipefd_handler(int signum)
 {
-    (void) ptr;
-    (void) info;
-
     if (write(pipe_set[signum][1], "\x00", 1) < 0) {
         if (errno != EAGAIN) {
             perror("Couldn't write to notification pipe");
@@ -165,7 +157,7 @@ int signal_pipefd_connect(int signum)
         return -1;
     }
 
-    result = register_handler(pipefd_handler, signum, true, false);
+    result = register_handler(pipefd_handler, signum, true);
 
     if (result != 0) {
         return result;
