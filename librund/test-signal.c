@@ -1,9 +1,11 @@
 #include "config.h"
 
+#include <errno.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/select.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -78,6 +80,71 @@ static int lookup_signal(const char *name)
     return -1;
 }
 
+static const char * lookup_sig_name(int signum)
+{
+    static const char empty[1] = "\x00";
+
+    for (unsigned int x = 0; signals[x].signum != -1; x++) {
+        if (signals[x].signum == signum) {
+            return signals[x].name;
+        }
+    }
+
+    fprintf(stderr, "error: couldn't lookup signal [%d]\n", signum);
+    return empty;
+}
+
+static int wait_signals(int signal_list[], unsigned int count)
+{
+    fd_set read_fds;
+    fd_set error_fds;
+    int fd_list[count];
+    int max_fd = -1;
+
+    FD_ZERO(&read_fds);
+    FD_ZERO(&error_fds);
+
+    for (unsigned int x = 0; x < count; x++) {
+        fd_list[x] = signal_pipefd_get(signal_list[x]);
+        FD_SET(fd_list[x], &read_fds);
+        FD_SET(fd_list[x], &error_fds);
+
+        if (fd_list[x] > max_fd) {
+            max_fd = fd_list[x];
+        }
+    }
+
+    while (1) {
+        int result = select(max_fd + 1, &read_fds, NULL, &error_fds, NULL);
+
+        if ((result < 0) && (errno == EINTR)) {
+            continue;
+        }
+
+        if (result < 0) {
+            perror("select call failed");
+            return result;
+        }
+
+        break;
+    }
+
+    for (int x = 0; x < (int) count; x++) {
+        if (FD_ISSET(fd_list[x], &error_fds)) {
+            fprintf(stderr, "wait_signals got an error on signal[%d]\n", x);
+            signal_pipefd_clear(signal_list[x]);
+        }
+
+        if (FD_ISSET(fd_list[x], &read_fds)) {
+            fprintf(stderr, "wait_signals received signal [%s]\n",
+                    lookup_sig_name(signal_list[x]));
+            signal_pipefd_clear(signal_list[x]);
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     int result;
@@ -91,10 +158,10 @@ int main(int argc, char *argv[])
     }
 
     printf("Process is PID %ju\n\n", (uintmax_t)(getpid()));
-
-    signal_pipefd_connect(target_signal);
-
     printf("Testing polled interface\n");
+
+    signal_pipefd_connect(SIGUSR1);
+
     while (1) {
         sleep_ms(5);
         ticks++;
@@ -116,11 +183,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("Entering main-loop\n");
+    signal_pipefd_connect(SIGUSR2);
 
+    printf("Entering main-loop\n");
+    int signal_set[2] = {SIGUSR1, SIGUSR2};
     while (1) {
-        signal_pipefd_wait(target_signal);
-        printf("Got signal!\n");
+        wait_signals(signal_set, 2);
     }
 
     signal_pipefd_cleanup();
