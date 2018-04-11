@@ -67,7 +67,7 @@ static int sleep_ms(unsigned int count)
         .tv_nsec = nsec
     };
 
-    return nanosleep(&duration, NULL);
+    return nanosleep_nointr(&duration, NULL);
 }
 
 static int lookup_signal(const char *name)

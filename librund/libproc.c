@@ -30,7 +30,7 @@ static int sleep_ms(unsigned int count)
         .tv_nsec = nsec
     };
 
-    return nanosleep(&duration, NULL);
+    return nanosleep_nointr(&duration, NULL);
 }
 
 pid_t proc_launch(char *const argv[], int stdin_fd, int stdout_fd,
@@ -63,9 +63,9 @@ pid_t proc_launch(char *const argv[], int stdin_fd, int stdout_fd,
     }
 
     if (child == 0) {
-        dup2(stdin_fd, STDIN_FILENO);
-        dup2(stdout_fd, STDOUT_FILENO);
-        dup2(stderr_fd, STDERR_FILENO);
+        dup2_nointr(stdin_fd, STDIN_FILENO);
+        dup2_nointr(stdout_fd, STDOUT_FILENO);
+        dup2_nointr(stderr_fd, STDERR_FILENO);
 
         result = execve(filename, argv, environ);
         _exit(result);

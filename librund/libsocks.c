@@ -257,7 +257,7 @@ int socks_server_process(int socket_fd, socks_callback_t callback)
     char header[4];
     uint32_t msgsize;
 
-    connection_fd = accept(socket_fd, 0, 0);
+    connection_fd = accept_nointr(socket_fd, 0, 0);
 
     if (connection_fd < 0) {
         return connection_fd;
@@ -296,7 +296,8 @@ ssize_t socks_client_process(const char *filename, const char *input,
         return socket_fd;
     }
 
-    result = connect(socket_fd, (struct sockaddr *) &address, sizeof(address));
+    result = connect_nointr(socket_fd, (struct sockaddr *) &address,
+                            sizeof(address));
 
     if (result != 0) {
         fprintf(stderr, "Couldn't connect to socket [%s]\n", filename);
