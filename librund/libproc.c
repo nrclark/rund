@@ -13,6 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "libnointr.h"
 #include "libpath.h"
 #include "libproc.h"
 
@@ -86,7 +87,7 @@ int8_t proc_polled_wait(pid_t process)
             return -1;
         }
 
-        result = waitpid(process, &status, options);
+        result = waitpid_nointr(process, &status, options);
 
         if (result < 0) {
             return result;
@@ -107,7 +108,7 @@ bool proc_running(pid_t process, int8_t *errcode)
     int status;
     int options = WNOHANG;
 
-    int result = waitpid(process, &status, options);
+    int result = waitpid_nointr(process, &status, options);
 
     if (result == -1) {
         perror(NULL);

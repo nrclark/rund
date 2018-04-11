@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "libnointr.h"
 #include "libsignal.h"
 
 #define sigdef_line(x) .signum = (x), .fd = -1, .name = #x
@@ -100,6 +101,7 @@ static int wait_signals(int signal_list[], unsigned int count)
     fd_set error_fds;
     int fd_list[count];
     int max_fd = -1;
+    int result;
 
     FD_ZERO(&read_fds);
     FD_ZERO(&error_fds);
@@ -114,19 +116,15 @@ static int wait_signals(int signal_list[], unsigned int count)
         }
     }
 
-    while (1) {
-        int result = select(max_fd + 1, &read_fds, NULL, &error_fds, NULL);
+    result = select_nointr(max_fd + 1, &read_fds, NULL, &error_fds, NULL);
 
-        if ((result < 0) && (errno == EINTR)) {
-            continue;
-        }
+    if (result < 0) {
+        perror("select call failed");
+        return result;
+    }
 
-        if (result < 0) {
-            perror("select call failed");
-            return result;
-        }
-
-        break;
+    if (result == 0) {
+        return 0;
     }
 
     for (int x = 0; x < (int) count; x++) {

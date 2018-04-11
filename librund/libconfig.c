@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "libconfig.h"
+#include "libnointr.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -141,7 +142,7 @@ int config_lookup(const char *filename, const char *section, const char *key,
         return -1;
     }
 
-    infile = fopen(filename, "r");
+    infile = fopen_nointr(filename, "r");
 
     if (infile == NULL) {
         perror("couldn't open file for writing");
@@ -187,7 +188,7 @@ int config_lookup(const char *filename, const char *section, const char *key,
 
                 result = match_key(trimmed, len, key, value);
                 if (result == 0) {
-                    fclose(infile);
+                    fclose_nointr(infile);
                     free(line);
                     return 0;
                 }
@@ -198,6 +199,6 @@ int config_lookup(const char *filename, const char *section, const char *key,
         line = NULL;
     }
 
-    fclose(infile);
+    fclose_nointr(infile);
     return -1;
 }

@@ -17,11 +17,11 @@
 int signal_pipefd_connect(int signum);
 
 /* Returns the file descriptor for the read-end of the target signal's pipe,
- * for use with select() and friends. Signal-handler must be initialized with
- * signal_pipefd_connect() first.
+ * for use with select()/select_nointr() and friends. Signal-handler must be
+ * initialized with signal_pipefd_connect() first.
  *
  * Note that when using the signal descriptor directly, be sure to clear the
- * received signal with read(fd, 1) or with signal_pipefd_clear(). */
+ * received signal with read/read_nointr(fd, 1) or with signal_pipefd_clear(). */
 
 int signal_pipefd_get(int signum);
 

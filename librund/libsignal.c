@@ -8,6 +8,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "libnointr.h"
 #include "libsignal.h"
 
 /*----------------------------------------------------------------------------*/
@@ -87,7 +88,7 @@ static int fd_check_ready(int fd)
     FD_SET(fd, &read_fds);
     FD_SET(fd, &error_fds);
 
-    int result = select(fd + 1, &read_fds, NULL, &error_fds, &timeout);
+    int result = select_nointr(fd + 1, &read_fds, NULL, &error_fds, &timeout);
 
     if (result < 0) {
         perror("select call failed");
@@ -114,7 +115,7 @@ static void pipe_set_init(void)
 
 static void pipefd_handler(int signum)
 {
-    if (write(pipe_set[signum][1], "\x00", 1) < 0) {
+    if (write_nointr(pipe_set[signum][1], "\x00", 1) < 0) {
         if (errno != EAGAIN) {
             perror("Couldn't write to notification pipe");
         }
@@ -201,7 +202,7 @@ int signal_pipefd_clear(int signum)
     }
 
     if (result == 1) {
-        result = read(pipe_set[signum][0], &dummy_buffer, 1);
+        result = read_nointr(pipe_set[signum][0], &dummy_buffer, 1);
 
         if (result < 0) {
             perror("read from pipe failed");
@@ -248,7 +249,7 @@ int signal_pipefd_wait(int signum)
         pipe_set_init();
     }
 
-    result = read(pipe_set[signum][0], &dummy_buffer, 1);
+    result = read_nointr(pipe_set[signum][0], &dummy_buffer, 1);
 
     if (result < 0) {
         perror("read from pipe failed");
@@ -278,7 +279,7 @@ int signal_pipefd_cleanup(void)
 
         for (unsigned int x = 0; x < 2; x++) {
             if (pipe_set[signum][x] != -1) {
-                result = close(pipe_set[signum][x]);
+                result = close_nointr(pipe_set[signum][x]);
 
                 if (result != 0) {
                     perror("couldn't close pipefd");

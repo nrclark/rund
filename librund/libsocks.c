@@ -14,6 +14,7 @@
 
 #include <unistd.h>
 
+#include "libnointr.h"
 #include "libsocks.h"
 
 static const char path_toolong[] = "%s: error: pathname too long\n";
@@ -46,7 +47,7 @@ static ssize_t read_count(int filedes, char *buf, size_t nbyte)
     size_t total = 0;
 
     while (total != nbyte) {
-        result = read(filedes, buf, (nbyte - total));
+        result = read_nointr(filedes, buf, (nbyte - total));
 
         if (result < 0) {
             return result;
@@ -64,7 +65,7 @@ static ssize_t write_count(int filedes, const char *buf, size_t nbyte)
     size_t remaining = nbyte;
 
     while (remaining != 0) {
-        result = write(filedes, buf, remaining);
+        result = write_nointr(filedes, buf, remaining);
 
         if (result < 0) {
             return result;
@@ -270,7 +271,7 @@ int socks_server_process(int socket_fd, socks_callback_t callback)
 
     msgsize = deserialize_uint32(header);
     result = socks_process_request(connection_fd, callback, msgsize);
-    close(connection_fd);
+    close_nointr(connection_fd);
 
     return result;
 }
@@ -299,24 +300,25 @@ ssize_t socks_client_process(const char *filename, const char *input,
 
     if (result != 0) {
         fprintf(stderr, "Couldn't connect to socket [%s]\n", filename);
-        close(socket_fd);
+        close_nointr(socket_fd);
         return result;
     }
 
     result = socks_send(socket_fd, input, nbyte);
 
     if (result < 0) {
-        close(socket_fd);
+        close_nointr(socket_fd);
         return result;
     }
 
     result = socks_recv(socket_fd, output, bufsize);
-    close(socket_fd);
+    close_nointr(socket_fd);
     return result;
 }
 
 int socks_server_wait(int socket_fd)
 {
+    int result;
     fd_set read_fds;
     fd_set error_fds;
 
@@ -325,7 +327,7 @@ int socks_server_wait(int socket_fd)
     FD_SET(socket_fd, &read_fds);
     FD_SET(socket_fd, &error_fds);
 
-    int result = select(socket_fd + 1, &read_fds, NULL, &error_fds, NULL);
+    result = select_nointr(socket_fd + 1, &read_fds, NULL, &error_fds, NULL);
 
     /* We might normally use FD_ISSET here, but this isn't necessary
      * because we're only listening for one item (the socket). */
@@ -343,5 +345,5 @@ int socks_server_wait(int socket_fd)
 
 int socks_server_close(int socket_fd)
 {
-    return close(socket_fd);
+    return close_nointr(socket_fd);
 }
