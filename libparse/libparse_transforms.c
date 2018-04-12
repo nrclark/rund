@@ -16,7 +16,7 @@ int arg_int64(const char *input, void *output)
      * the result in 'output'. Exits with 0 on success, and -1 on a failure.
      *
      * The following multiplier suffixes are understood and applied to the
-     * result: k=2**10, M=2**20, G=2**10, and T=2**30. */
+     * result: k=2**10, M=2**20, G=2**30, and T=2**40. */
 
     char *endptr;
     intmax_t value_max = 0;
