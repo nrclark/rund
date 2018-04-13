@@ -29,13 +29,12 @@ void parser_stderr_msg(const char *message, ...);
 
 void parser_set_help(const char *help_string);
 void parser_set_usage(const char *usage_string);
+void parser_set_version(const char *prog_version);
 
 void parser_set_tagline(const char *tagline_string);
 void parser_set_canonical_name(const char *name_string);
 
 const char * parser_get_progname(void);
-
-void parser_set_version(const char *prog_version);
 
 /*----------------------------------------------------------------------------*/
 

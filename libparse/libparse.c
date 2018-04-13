@@ -94,6 +94,10 @@ static int longopt_index(struct arg_t args[], unsigned int nargs, char *arg)
             continue;
         }
 
+        if (args[x].longopt[0] != '-') {
+            continue;
+        }
+
         length = strnlen(args[x].longopt, argname_maxlen);
 
         if (strncmp(arg, args[x].longopt, (size_t) length) == 0) {
