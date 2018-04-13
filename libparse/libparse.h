@@ -27,6 +27,9 @@ struct arg_t {
 void parser_exit_error(bool append_usage, const char *message, ...);
 void parser_stderr_msg(const char *message, ...);
 
+void parser_stderr_usage(struct arg_t args[], unsigned int nargs);
+void parser_stdout_usage(struct arg_t args[], unsigned int nargs);
+
 void parser_set_help(const char *help_string);
 void parser_set_usage(const char *usage_string);
 void parser_set_version(const char *prog_version);
