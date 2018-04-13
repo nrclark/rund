@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <limits.h>
 
 #include "libparse.h"
 #include "libparse_transforms.h"
@@ -42,46 +41,6 @@ static void print_opts(void)
     printf("Filter: [%s] (count: %u)\n", opts.filter, opts.filter_count);
 }
 
-
-
-struct arg_t {
-    const char *shortopt;
-    const char *longopt;
-    void *value;
-    unsigned int *count;
-    parser_transformer_t transformer;
-    argtype_t type;
-};
-
-void print_shortarg(const char *shortarg, const char *name, unsigned int len)
-{
-    char uppername[len + 1];
-
-    for(unsigned int x = 0; name[x] == '-'; x++);
-    
-{
-    if (arg->longopt != NULL) {
-        namelen = strnlen(arg->longopt, NAME_MAX);
-        
-    }
-
-    if (arg->shortopt != NULL) {
-        printf("[%s], " arg->shortopt
-}
-
-
-void print_argt(arg_t *arg)
-{
-    if (arg->longopt != NULL) {
-        namelen = strnlen(arg->longopt, NAME_MAX);
-        
-    }
-
-    if (arg->shortopt != NULL) {
-        printf("[%s], " arg->shortopt
-}
-
-
 int main(int argc, char *argv[])
 {
     unsigned int nargs;
@@ -103,6 +62,8 @@ int main(int argc, char *argv[])
     nargs = sizeof(options) / sizeof(options[0]);
 
     parser_set_version("1.23.314");
+    parser_stdout_usage(options, nargs);
+    printf("\n------------\n");
     remaining = parser_run(options, nargs, argc, argv, false);
     print_opts();
 

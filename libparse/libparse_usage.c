@@ -29,7 +29,7 @@ static unsigned int get_terminal_width(void)
     ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
     return ts.ws_col;
 #else
-    return 76;
+    return 80;
 #endif
 }
 
