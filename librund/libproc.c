@@ -48,7 +48,7 @@ pid_t proc_launch(char *const argv[], int stdin_fd, int stdout_fd,
         return -1;
     }
 
-    result = path_findprog(argv[0], filename);
+    result = path_findprog(argv[0], filename, sizeof(filename));
 
     if (result != 0) {
         fprintf(stderr, "error: couldn't launch [%s]: %s.\n", argv[0],

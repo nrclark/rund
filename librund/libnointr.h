@@ -1,6 +1,7 @@
 #ifndef _LIBNOINTR_H_
 #define _LIBNOINTR_H_
 
+#include <pwd.h>
 #include <stdio.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -33,4 +34,5 @@ int dup2_nointr(int fildes, int fildes2);
 
 int nanosleep_nointr(const struct timespec *rqtp, struct timespec *rmtp);
 
+struct passwd * getpwuid_nointr(uid_t uid);
 #endif

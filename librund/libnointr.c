@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -188,6 +189,21 @@ int nanosleep_nointr(const struct timespec *rqtp, struct timespec *rmtp)
         result = nanosleep(rqtp, rmtp);
 
         if ((result < 0) && (errno == EINTR)) {
+            continue;
+        }
+
+        return result;
+    }
+}
+
+struct passwd * getpwuid_nointr(uid_t uid)
+{
+    struct passwd *result;
+
+    while (1) {
+        result = getpwuid(uid);
+
+        if ((result == NULL) && (errno == EINTR)) {
             continue;
         }
 

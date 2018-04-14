@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "libnointr.h"
 #include "libpath.h"
 
 static const char mkdirs_errstring[] = "%s: cannot create directory ‘%s’: ";
@@ -62,22 +63,64 @@ int path_mkdirs(const char *path, mode_t mode)
     return mkdirs_lowlevel(buffer, mode);
 }
 
-int path_findprog(const char *name, char *output)
+static int check_exec(const char *restrict dir, size_t dirlen,
+                      const char *restrict file, size_t filelen,
+                      char *restrict buffer, size_t maxlen)
 {
-    const char *path = getenv("PATH");
+    unsigned char termdir;
+    int result;
 
-    unsigned int name_length = strnlen(name, NAME_MAX);
-    unsigned int path_length;
-    unsigned int start = 0;
-    unsigned int end = 0;
+    if (maxlen == 0) {
+        return -1;
+    }
+
+    if (dirlen == 0) {
+        termdir = 0;
+    } else {
+        termdir = (dir[dirlen - 1] != '/');
+    }
+
+    if ((dirlen + termdir + filelen + 1) > maxlen) {
+        return -1;
+    }
+
+    memcpy(buffer, dir, dirlen);
+    buffer += dirlen;
+
+    if (termdir) {
+        *(buffer++) = '/';
+    }
+
+    memcpy(buffer, file, filelen);
+    buffer[filelen] = '\x00';
+    result = access(buffer, R_OK | X_OK);
+
+    if (result != 0) {
+        buffer[0] = '\x00';
+    }
+
+    return result;
+}
+
+int path_findprog(const char *restrict name, char *restrict dest,
+                  size_t maxlen)
+{
+    const char *path;
+    const char *dir;
+    unsigned int dirlen;
+    unsigned int namelen = strnlen(name, PATH_MAX);
 
     for (unsigned int x = 0; name[x] != '\x00'; x++) {
         if (name[x] == '/') {
-            strncpy(output, name, PATH_MAX);
-            output[PATH_MAX] = '\x00';
-            return 0;
+            return check_exec(NULL, 0, name, namelen, dest, maxlen);
         }
     }
+
+    if (namelen > NAME_MAX) {
+        return -1;
+    }
+
+    path = getenv("PATH");
 
     if (path != NULL) {
         if (path[0] == '\x00') {
@@ -89,38 +132,100 @@ int path_findprog(const char *name, char *output)
         path = "/usr/bin:/bin";
     }
 
+    dir = path;
+    path += 1;
+
     while (1) {
-        if ((path[end] == ':') || (path[end] == '\x00')) {
-            path_length = end - start;
-
-            if ((path_length + name_length + 1) > PATH_MAX) {
-                path_length = PATH_MAX - (name_length + 1);
-            }
-
-            memcpy(output, path + start, path_length);
-            output[path_length] = '/';
-            memcpy(output + path_length + 1, name, name_length);
-            output[name_length + path_length + 1] = '\x00';
-            start = end + 1;
-
-            if (access(output, R_OK | X_OK) == 0) {
+        if ((*path == ':') || (*path == '\x00')) {
+            dirlen = path - dir;
+            if (check_exec(dir, dirlen, name, namelen, dest, maxlen) == 0) {
                 return 0;
             }
+            dir = path + 1;
         }
 
-        if (path[end] == '\x00') {
+        if ((*path++) == '\x00') {
             break;
         }
-        end++;
     }
 
-    memcpy(output, "./", 2);
-    memcpy(output + 2, name, name_length);
-    output[2 + name_length] = '\x00';
+    return check_exec(".", 1, name, namelen, dest, maxlen);
+}
 
-    if (access(output, R_OK | X_OK) == 0) {
+int path_readable(const char *name)
+{
+    if (name == NULL) {
+        return -1;
+    }
+
+    if (access(name, R_OK) == 0) {
         return 0;
     }
 
     return -1;
+}
+
+const char * path_homedir(void)
+{
+    const char *dir = getenv("HOME");
+    struct passwd *result;
+
+    if (dir != NULL) {
+        return dir;
+    }
+
+    result = getpwuid_nointr(getuid());
+
+    if (result == NULL) {
+        return NULL;
+    }
+
+    return result->pw_dir;
+}
+
+int path_join(char *restrict dest, const char *restrict dir,
+              const char *restrict file, size_t maxlen)
+{
+    size_t dir_len;
+    size_t file_len;
+    unsigned char need_slash;
+
+    dir_len = strnlen(dir, maxlen);
+    file_len = strnlen(file, maxlen);
+    need_slash = (dir[dir_len - 1] != '/');
+
+    if ((dir_len + file_len + need_slash + 1) > maxlen) {
+        if (maxlen != 0) {
+            dest[0] = '\x00';
+        }
+        return -1;
+    }
+
+    memcpy(dest, dir, dir_len);
+    dest += dir_len;
+
+    if (need_slash) {
+        *(dest++) = '/';
+    }
+
+    memcpy(dest, file, file_len);
+    dest[file_len] = '\x00';
+
+    return 0;
+}
+
+int path_strncpy(char *restrict dest, const char *restrict src, size_t maxlen)
+{
+    size_t len = strnlen(src, maxlen);
+
+    if (len >= maxlen) {
+        if (maxlen != 0) {
+            dest[0] = '\x00';
+        }
+        return -1;
+    }
+
+    memcpy(dest, src, len);
+    dest[len] = '\x00';
+    return 0;
 }
