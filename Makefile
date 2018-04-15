@@ -1,7 +1,7 @@
 .SUFFIXES:
 CC := gcc
 
-all: libparse.a
+all: rund
 
 #------------------------------------------------------------------------------#
 
@@ -181,9 +181,6 @@ clean::
 #------------------------------------------------------------------------------#
 
 rund: rund.c libparse/libparse.a librund/librund.a
-	$(CC) $(CFLAGS) $^ -o $@
-
-libparse_demo: libparse_demo.c libparse.a
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean::
