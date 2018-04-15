@@ -105,9 +105,10 @@ static int match_key(const char *line, unsigned int line_length,
     length = trim_right(valbuf);
 
     for (unsigned int x = 0; x < sizeof(quotes); x++) {
-        if ((valbuf[0] == quotes[x]) && (valbuf[result - 1] == quotes[x])) {
+        if ((valbuf[0] == quotes[x]) && (valbuf[length - 1] == quotes[x])) {
             shift_left(valbuf);
-            length--;
+            valbuf[--length] = '\x00';
+            valbuf[--length] = '\x00';
         }
     }
 
