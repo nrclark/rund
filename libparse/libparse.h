@@ -34,6 +34,7 @@ void parser_set_tagline(const char *tagline_string);
 void parser_set_canonical_name(const char *name_string);
 
 const char * parser_get_progname(void);
+void parser_init_progname(char *argv0);
 
 void parser_set_version(const char *prog_version);
 

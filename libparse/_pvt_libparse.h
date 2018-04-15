@@ -11,8 +11,6 @@ void exit_version(void);
 void exit_badvalue(const char *shortarg, const char *longarg,
                    const char *value);
 
-void parser_init_progname(char *argv0);
-
 /*----------------------------------------------------------------------------*/
 
 #endif
