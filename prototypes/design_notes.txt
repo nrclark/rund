@@ -3,10 +3,16 @@ When started, service manager creates: [$STATEDIR/svcname], where svcname
 is the basename of the folder being launched.
 
 STATEDIR is set as follows, in order of priority:
-    1. Read from $HOME/.rundrc (ignored if -s is set)
-    2. Read from $(sysconfdir)/rund.conf (if available)
-    3. $(runstatedir)/$(basename-argv0)/$USER(EUID)
+    1. Read from $STATEDIR (ignored if -s is set)
+    2. Read from $HOME/.rundrc (ignored if -s is set)
+    3. Read from $(sysconfdir)/rund.conf (if available)
+    4. $(runstatedir)/$(basename-argv0)/$USER(UID)
 
 The process load information is read from: [$STATEDIR/svcname], where svcname
 is the basename of the folder being launched.
 
+When launching a daemon, the process goes:
+
+1. Read STATEDIR
+2. Read SERVICEDIR
+3. 

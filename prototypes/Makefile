@@ -152,7 +152,7 @@ clean::
 
 #------------------------------------------------------------------------------#
 
-sigtest: rund.c librund.c librund.h
+sigtest: rund.c libcommon.c libcommon.h
 	$(CC) $(CFLAGS) $(filter-out %.h,$^) -o $@
 
 clean::

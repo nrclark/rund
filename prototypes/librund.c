@@ -12,7 +12,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "librund.h"
+#include "libcommon.h"
 
 extern char **environ;
 
@@ -231,7 +231,7 @@ static void sigint_handler(int signum, siginfo_t *info, void *ptr)
     fprintf(stderr, "gooby %jd\n", (intmax_t) getpid());
 }
 
-void librund_init(void)
+void libcommon_init(void)
 {
     if (child_pipe[0] != -1) {
         return;
@@ -255,13 +255,13 @@ void librund_init(void)
     register_handler(sigchild_handler, SIGCHLD, true, false);
 }
 
-void librund_wait(void)
+void libcommon_wait(void)
 {
     char dummy_buffer;
     read(child_pipe[0], &dummy_buffer, 1);
 }
 
-pid_t librund_launch(char *const argv[], int stdin_fd, int stdout_fd,
+pid_t libcommon_launch(char *const argv[], int stdin_fd, int stdout_fd,
                      int stderr_fd)
 {
     pid_t result = launch(argv, stdin_fd, stdout_fd, stderr_fd);

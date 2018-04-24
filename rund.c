@@ -9,9 +9,9 @@
 #include <unistd.h>
 
 #include "libparse/libparse.h"
-#include "librund/libconfig.h"
-#include "librund/libnointr.h"
-#include "librund/libpath.h"
+#include "libcommon/libconfig.h"
+#include "libcommon/libnointr.h"
+#include "libcommon/libpath.h"
 
 static const char rcfile[] = ".rundrc";
 static const char conffile[] = "rund.conf";

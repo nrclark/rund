@@ -1,5 +1,5 @@
-#ifndef _LIBRUND_H_
-#define _LIBRUND_H_
+#ifndef _LIBCOMMON_H_
+#define _LIBCOMMON_H_
 
 #include <signal.h>
 #include <stdbool.h>
@@ -19,9 +19,9 @@ bool check_running(pid_t process, int8_t *errcode);
 
 int sleep_ms(unsigned int count);
 
-void librund_init(void);
-pid_t librund_launch(char *const argv[], int stdin_fd, int stdout_fd,
+void libcommon_init(void);
+pid_t libcommon_launch(char *const argv[], int stdin_fd, int stdout_fd,
                      int stderr_fd);
-void librund_wait(void);
+void libcommon_wait(void);
 
 #endif

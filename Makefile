@@ -153,7 +153,7 @@ CFLAGS += -O2
 CFLAGS += -ffunction-sections -fdata-sections -flto -Wl,-flto,--gc-sections
 endif
 
-CFLAGS += -Ilibrund -Ilibparse
+CFLAGS += -Ilibcommon -Ilibparse
 CFLAGS := $(strip $(CFLAGS))
 
 %.o: %.c
@@ -164,23 +164,23 @@ clean::
 
 #------------------------------------------------------------------------------#
 
-.PHONY: librund/librund.a
+.PHONY: libcommon/libcommon.a
 
-librund/librund.a:
+libcommon/libcommon.a:
 	cd $(dir $@) && make $(notdir $@)
 
-.PHONY: librund/librund.a
+.PHONY: libparse/libparse.a
 
 libparse/libparse.a:
 	cd $(dir $@) && make $(notdir $@)
 
 clean::
 	cd libparse && make clean
-	cd librund && make clean
+	cd libcommon && make clean
 
 #------------------------------------------------------------------------------#
 
-rund: rund.c libparse/libparse.a librund/librund.a
+rund: rund.c libparse/libparse.a libcommon/libcommon.a
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean::

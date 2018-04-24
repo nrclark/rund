@@ -1,7 +1,7 @@
 .SUFFIXES:
 CC := gcc
 
-all: librund.a
+all: libcommon.a
 
 #------------------------------------------------------------------------------#
 
@@ -168,20 +168,20 @@ LIBRUND_SRC += $(wildcard *.h)
 
 LIBRUND_SRC := $(filter-out test-%,$(LIBRUND_SRC))
 
-librund.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBRUND_SRC)))
+libcommon.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBRUND_SRC)))
 	rm -f $@
 	gcc-ar rcs $@ $^
 
-lint-librund: $(foreach x,$(LIBRUND_SRC),lint-$x)
-format-librund: $(foreach x,$(LIBRUND_SRC),format-$x)
-tidy-librund: $(foreach x,$(LIBRUND_SRC),tidy-$x)
+lint-libcommon: $(foreach x,$(LIBRUND_SRC),lint-$x)
+format-libcommon: $(foreach x,$(LIBRUND_SRC),format-$x)
+tidy-libcommon: $(foreach x,$(LIBRUND_SRC),tidy-$x)
 
 clean::
-	rm -f librund.a
+	rm -f libcommon.a
 
 #------------------------------------------------------------------------------#
 
-test-%: test-%.c librund.a
+test-%: test-%.c libcommon.a
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean::

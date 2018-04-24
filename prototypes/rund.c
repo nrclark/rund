@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "librund.h"
+#include "libcommon.h"
 
 int main(int argc, char *argv[], char *envp[])
 {
@@ -14,9 +14,9 @@ int main(int argc, char *argv[], char *envp[])
 
     printf("I am %lu\n", (unsigned long)getpid());
     char *const cmd[] = {(char *)"./test.sh", NULL};
-    librund_init();
+    libcommon_init();
 
-    pid_t result = librund_launch(cmd, STDIN_FILENO, STDOUT_FILENO,
+    pid_t result = libcommon_launch(cmd, STDIN_FILENO, STDOUT_FILENO,
                                   STDERR_FILENO);
     int8_t errcode;
     while (check_running(result, &errcode)) {}
@@ -24,7 +24,7 @@ int main(int argc, char *argv[], char *envp[])
     printf("Errcode: %d\n", errcode);
     check_running(345309450, &errcode);
 
-    //librund_wait();
+    //libcommon_wait();
     printf("Child complete\n");
     printf("Errcode: %d\n", errcode);
     return 0;
