@@ -18,7 +18,7 @@ static const char conffile[] = "rund.conf";
 static const char sysconfdir[] = "etc";
 static const char runstatedir[] = "/var/run";
 
-static int get_euser(char *output, size_t maxlen)
+static int get_user(char *output, size_t maxlen)
 {
     int result;
     struct passwd *pw;
@@ -42,7 +42,7 @@ static int default_statedir(char *output, size_t maxlen)
 {
     char folder[PATH_MAX + 1];
     char name[LOGIN_NAME_MAX + 1];
-    int result = get_euser(name, sizeof(name));
+    int result = get_user(name, sizeof(name));
 
     if (result != 0) {
         return result;
