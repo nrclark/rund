@@ -72,9 +72,9 @@ tidy-%: %
 	@echo Analyzing $* with clang-tidy/clang-check...
 	@clang-tidy \
 	    "-checks=*,-llvm-header-guard,-android-cloexec-open,-android-cloexec-fopen,-hicpp-no-assembler" \
-	    "-header-filter=.*" $* -- 2>/dev/null | \
+	    "-header-filter=.*" $(strip $(filter-out -f%,$(CFLAGS)) $*) -- 2>/dev/null | \
 	    (grep -iP "(warning|error)[:]" -A2 --color || true)
-	@clang-check -analyze $* --
+	@$(strip clang-check -analyze $* -- $(strip $(filter-out -f%,$(CFLAGS))))
 
 $(foreach x,$(wildcard *.c),$(eval tidy-$x:))
 $(foreach x,$(wildcard *.h),$(eval tidy-$x:))
@@ -83,8 +83,8 @@ tidy: $(foreach x,$(wildcard *.c),tidy-$x)
 tidy: $(foreach x,$(filter-out config.h,$(wildcard *.h)),tidy-$x)
 
 define make_tidy_folder
-$(eval tidy: $(foreach x,$(wildcard $1/*.c),tidy-$(notdir $x)))
-$(eval tidy: $(foreach x,$(filter-out config.h,$(wildcard $1/*.h)),tidy-$(notdir $x)))
+$(eval tidy: $(foreach x,$(wildcard $1/*.c),$1/tidy-$(notdir $x)))
+$(eval tidy: $(foreach x,$(filter-out config.h,$(wildcard $1/*.h)),$1/tidy-$(notdir $x)))
 $(foreach x,$(wildcard $1/*.c),$(eval $1/tidy-$(notdir $x):))
 $(foreach x,$(wildcard $1/*.h),$(eval $1/tidy-$(notdir $x):))
 endef
@@ -93,7 +93,6 @@ $(call make_tidy_folder,libparse)
 
 #tidy-parse: $(foreach x,$(wildcard libparse/*.c),libparse/tidy-$(notdir $x))
 #tidy-parse: $(foreach x,$(filter-out config.h,$(wildcard libparse/*.h)),libparse/tidy-$(notdir $x))
-
 
 clean::
 	rm -f *.plist
@@ -168,7 +167,7 @@ CFLAGS += -O2
 CFLAGS += -ffunction-sections -fdata-sections -flto -Wl,-flto,--gc-sections
 endif
 
-CFLAGS += -I$(abspath libcommon) -I$(abspath libparse) -I$(abspath librund)
+CFLAGS += -I$(abspath libcommon) -I$(abspath libparse) -I$(abspath librund) -I$(abspath .)
 CFLAGS := $(strip $(CFLAGS))
 
 %.o: %.c
