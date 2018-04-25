@@ -1,7 +1,8 @@
 .SUFFIXES:
 CC := gcc
 
-all: rund
+all: librund.a
+CFLAGS := $(CFLAGS) -I$(abspath ..) -I$(abspath ../libparse) -I$(abspath ../libcommon)
 
 #------------------------------------------------------------------------------#
 
@@ -33,6 +34,7 @@ LINT_CFLAGS := $(strip \
     -Wall -Wextra -pedantic -ansi -std=c11 \
     $(filter-out $(LINT_BLACKLIST),$(LINT_CFLAGS)) \
     -Wno-system-headers \
+	$(CFLAGS) \
 )
 
 lint-%.h: %.h
@@ -70,30 +72,16 @@ format: $(foreach x,$(wildcard *.h),format-$x)
 
 tidy-%: %
 	@echo Analyzing $* with clang-tidy/clang-check...
-	@clang-tidy \
+	clang-tidy \
 	    "-checks=*,-llvm-header-guard,-android-cloexec-open,-android-cloexec-fopen,-hicpp-no-assembler" \
-	    "-header-filter=.*" $* -- 2>/dev/null | \
+	    "-header-filter=.*" $(strip $(CFLAGS) $*) -- 2>/dev/null | \
 	    (grep -iP "(warning|error)[:]" -A2 --color || true)
-	@clang-check -analyze $* --
+	$(strip clang-check -analyze $* -- $(strip $(CFLAGS)))
 
 $(foreach x,$(wildcard *.c),$(eval tidy-$x:))
 $(foreach x,$(wildcard *.h),$(eval tidy-$x:))
-
 tidy: $(foreach x,$(wildcard *.c),tidy-$x)
 tidy: $(foreach x,$(filter-out config.h,$(wildcard *.h)),tidy-$x)
-
-define make_tidy_folder
-$(eval tidy: $(foreach x,$(wildcard $1/*.c),tidy-$(notdir $x)))
-$(eval tidy: $(foreach x,$(filter-out config.h,$(wildcard $1/*.h)),tidy-$(notdir $x)))
-$(foreach x,$(wildcard $1/*.c),$(eval $1/tidy-$(notdir $x):))
-$(foreach x,$(wildcard $1/*.h),$(eval $1/tidy-$(notdir $x):))
-endef
-
-$(call make_tidy_folder,libparse)
-
-#tidy-parse: $(foreach x,$(wildcard libparse/*.c),libparse/tidy-$(notdir $x))
-#tidy-parse: $(foreach x,$(filter-out config.h,$(wildcard libparse/*.h)),libparse/tidy-$(notdir $x))
-
 
 clean::
 	rm -f *.plist
@@ -101,7 +89,6 @@ clean::
 #------------------------------------------------------------------------------#
 
 sanitize ?= 1
-#sanitize ?=
 
 SAN_CFLAGS := \
     -O0 -g \
@@ -131,10 +118,15 @@ SAN_CFLAGS := \
 
 #------------------------------------------------------------------------------#
 
+INCLUDE_CFLAGS := $(filter -I%,$(CFLAGS))
+shit:
+	echo $(INCLUDE_CFLAGS)
+
 cppcheck-%:
 	@(cppcheck $* --force --enable=warning,style,performance,portability \
 	-I `pwd` -I /usr/include -I /usr/include/linux \
 	-I /usr/lib/gcc/x86_64-redhat-linux/7/include \
+	$(INCLUDE_CFLAGS) \
 	--std=c99 1>/dev/null) 2>&1 | (grep -vP "^[(]information" 1>&2 || true)
 
 $(foreach x,$(wildcard *.c),$(eval cppcheck-$x:))
@@ -144,14 +136,14 @@ cppcheck: $(foreach x,$(wildcard *.h),cppcheck-$x)
 
 include-%:
 	@(include-what-you-use \
-	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $* || true) 2>&1 | \
+	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $(INCLUDE_CFLAGS) $* || true) 2>&1 | \
 	    grep -P "(should remove these lines|has correct [#]includes)" || true
 	@(include-what-you-use \
-	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $* || true) 2>&1 | \
+	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $(INCLUDE_CFLAGS) $* || true) 2>&1 | \
 	    grep -P "^[-] " || true
 
 fullinclude-%:
-	-include-what-you-use -I/usr/lib/gcc/x86_64-redhat-linux/7/include $*
+	-include-what-you-use -I/usr/lib/gcc/x86_64-redhat-linux/7/include $(INCLUDE_CFLAGS) $*
 
 include: $(foreach x,$(wildcard *.c),include-$x)
 include: $(foreach x,$(wildcard *.h),include-$x)
@@ -160,59 +152,46 @@ $(foreach x,$(wildcard *.h),$(eval include-$x:))
 
 #------------------------------------------------------------------------------#
 
-CFLAGS := -Wall -Wextra -pedantic
 ifneq ($(sanitize),)
+CFLAGS += -Wall -Wextra -pedantic
 CFLAGS += $(SAN_CFLAGS)
 else
+CFLAGS += -Wall -Wextra -pedantic
 CFLAGS += -O2
-CFLAGS += -ffunction-sections -fdata-sections -flto -Wl,-flto,--gc-sections
+CFLAGS += -ffunction-sections -fdata-sections
 endif
 
-CFLAGS += -I$(abspath libcommon) -I$(abspath libparse) -I$(abspath librund)
+LTO_CFLAGS := -flto -Wl,-flto,--gc-sections
 CFLAGS := $(strip $(CFLAGS))
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $^ -o $@
+	$(CC) $^ $(CFLAGS) $(LTO_CFLAGS) -c -o $@
 
 clean::
 	rm -f *.o
 
 #------------------------------------------------------------------------------#
 
-LIBCOMMON_SRC := $(wildcard libcommon/*.c) $(wildcard libcommon/*.h)
-LIBCOMMON_SRC := $(filter-out libcommon/test-%,$(LIBCOMMON_SRC))
+LIBRUND_SRC := $(wildcard *.c)
+LIBRUND_SRC += $(wildcard *.h)
 
-libcommon.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBCOMMON_SRC)))
-	rm -f $@
-	gcc-ar rcs $@ $^
-
-LIBPARSE_SRC := $(wildcard libparse/*.c) $(wildcard libparse/*.h)
-LIBPARSE_SRC := $(filter-out libparse/test-%,$(LIBPARSE_SRC))
-LIBPARSE_SRC := $(filter-out libparse/libparse_demo.c,$(LIBPARSE_SRC))
-
-libparse.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBPARSE_SRC)))
-	rm -f $@
-	gcc-ar rcs $@ $^
-
-LIBRUND_SRC := $(wildcard librund/*.c) $(wildcard librund/*.h)
-LIBRUND_SRC := $(filter-out librund/test-%,$(LIBRUND_SRC))
+LIBRUND_SRC := $(filter-out test-%,$(LIBRUND_SRC))
 
 librund.a: $(filter %.o,$(patsubst %.c,%.o,$(LIBRUND_SRC)))
 	rm -f $@
 	gcc-ar rcs $@ $^
 
+lint-librund: $(foreach x,$(LIBRUND_SRC),lint-$x)
+format-librund: $(foreach x,$(LIBRUND_SRC),format-$x)
+tidy-librund: $(foreach x,$(LIBRUND_SRC),tidy-$x)
+
 clean::
-	cd libparse && rm -f *.o
-	cd libcommon && rm -f *.o
-	cd librund && rm -f *.o
 	rm -f librund.a
-	rm -f libcommon.a
-	rm -f libparse.a
 
 #------------------------------------------------------------------------------#
 
-rund: rund.c librund.a libparse.a libcommon.a
+test-%: test-%.c librund.a
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean::
-	rm -f libparse_demo
+	rm -f $(patsubst %.c,%,$(wildcard test-*.c))
